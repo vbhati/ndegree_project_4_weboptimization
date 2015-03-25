@@ -487,36 +487,63 @@ function logAverageFrame(times) {   // times is the array of User Timing measure
   console.log("Average time to generate last 10 frames: " + sum / 10 + "ms");
 }
 
+/*
+  Line 494 - 507 and 513 is taken from the article by Paul Lewis to optimize the performance.
+  http://www.html5rocks.com/en/tutorials/speed/animations/
+  Section: Debouncing Scroll Events
+*/
+
+var latestKnownScrollY = 0,
+  ticking = false;
+
+//storing only the most recent value of scrollTop
+function onScroll() {
+  latestKnownScrollY = document.body.scrollTop;
+  requestTick();
+}
+
+// method that calls requestAnimationFrame based on current value of ticking.
+function requestTick() {
+  // If requestAnimationFrame is already requested don't initiate another
+  if(!ticking) {
+    requestAnimationFrame(updatePositions);
+  }
+  ticking = true;
+}
+
 // The following code for sliding background pizzas was pulled from Ilya's demo found at:
 // https://www.igvita.com/slides/2012/devtools-tips-and-tricks/jank-demo.html
-
 // Moves the sliding background pizzas based on scroll position
 function updatePositions() {
+  ticking = false;
   frame++;
   window.performance.mark("mark_start_frame");
   var items = document.querySelectorAll('.mover');
+
   var modArr = [0,1,2,3,4];
   // array to store different phase values
   var phaseArr =[];
-  // store current window inner height to be used to style only visible pizzas
+  // store current window inner height to be used to style/animate only visible pizzas
   var ht= window.innerHeight;
-
+  var scrollTop = latestKnownScrollY;
   // there can be only 5 different values for phases. Storing these values in
   // phaseArr to be used by for loop that updates element style.
   for(var j = 0 ; j < modArr.length ; j++) {
-      phaseArr[j] = Math.sin((document.body.scrollTop / 1250) + modArr[j]);
+      phaseArr[j] = Math.sin((scrollTop/ 1250) + modArr[j]);
   }
 
   // this for loop modifies the style only for visible elements on the page
   // not beyond that. If user scrolls it will again modify the style for visible elements only
   for (var i = 0; i < items.length; i++) {
-      // parsing string to integer.
-      if (parseInt(items[i].style.top) <= ht) {
-        items[i].style.left = items[i].basicLeft + 100 * phaseArr[i%5] + 'px';
-       // Following lines of code does improve performance but only displays 4-5 pizzas in a row on page.
-       //var x = -(items[i].basicLeft + 100 * phaseArr[i%5]);
-       //items[i].style.transform = 'translateX(' + x + 'px)';
-      }
+     // using basicTop instead of items[i].style.top which is expensive.
+     if (items[i].basicTop <= ht) {
+      /* http://www.phpied.com/rendering-repaint-reflowrelayout-restyle/
+         Requesting fewer style information optimizes reflows. If the styles are dynamic edit
+         cssText property as opposed to touching its style property.
+      */
+       var x = items[i].basicLeft + 100 * phaseArr[i%5] + 'px;'
+       items[i].style.cssText = "height: 100px; width: 73.333px;" + " top: "+ items[i].basicTop + "px;" + "left: " + x;
+     }
   }
 
   // User Timing API to the rescue again. Seriously, it's worth learning.
@@ -530,7 +557,7 @@ function updatePositions() {
 }
 
 // runs updatePositions on scroll
-window.addEventListener('scroll', updatePositions);
+window.addEventListener('scroll', onScroll);
 
 // Generates the sliding pizzas when the page loads.
 document.addEventListener('DOMContentLoaded', function() {
@@ -538,15 +565,18 @@ document.addEventListener('DOMContentLoaded', function() {
   var s = 256;
 
   // depending on max width (1792px) of screen and number of cols we are displaying max 8 pizzas in a row.
-  // Assuming the same max height (1792px), we can display 8 rows of pizza. total pizzas: 8*8 = 64 pizzas.
+  // Assuming the same max height, displaying 64 pizzas (8rows*8cols).
   for (var i = 0; i < 64; i++) {
     var elem = document.createElement('img');
+    var top = Math.floor(i / cols) * s;
     elem.className = 'mover';
     elem.src = "images/pizza.png";
     elem.style.height = "100px";
     elem.style.width = "73.333px";
     elem.basicLeft = (i % cols) * s;
-    elem.style.top = (Math.floor(i / cols) * s) + 'px';
+    elem.style.top = top + 'px';
+    //adding element top value to be used during animation
+    elem.basicTop = top;
     document.querySelector("#movingPizzas1").appendChild(elem);
   }
   updatePositions();
