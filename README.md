@@ -12,7 +12,9 @@ Improved performance of online portfolio by optimizing critical rendering path.
 
 5. Comments: Detailed code changes in main.js  
 
-#### Application url: http://portfolio-optimization.appspot.com/
+#### Application url: 
+
+http://portfolio-optimization.appspot.com/
 
 Performance can be observed using Google developer tools -> Timeline and console logs.
 Note: Differences in numbers were observed running the app on local machine using ngrok and through website url.
