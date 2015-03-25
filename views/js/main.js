@@ -401,20 +401,26 @@ var pizzaElementGenerator = function(i) {
 // resizePizzas(size) is called when the slider in the "Our Pizzas" section of the website moves.
 var resizePizzas = function(size) {
   window.performance.mark("mark_start_resize");   // User Timing API function
+
+  // newsize will store new size of pizza. New values have been taken from
+  // sizeSwitcher function which is no longer used.
   var newsize =0;
   // Changes the value for the size of the pizza above the slider
   function changeSliderLabel(size) {
     switch(size) {
       case "1":
         document.querySelector("#pizzaSize").innerHTML = "Small";
+        // value copied from sizeSwitcher function
         newsize = 0.25;
         return;
       case "2":
         document.querySelector("#pizzaSize").innerHTML = "Medium";
+        // value copied from sizeSwitcher function
         newsize = 0.3333;
         return;
       case "3":
         document.querySelector("#pizzaSize").innerHTML = "Large";
+        // value copied from sizeSwitcher function
         newsize = 0.5;
         return;
       default:
@@ -425,34 +431,14 @@ var resizePizzas = function(size) {
   changeSliderLabel(size);
 
   // Returns the size difference to change a pizza element from one size to another. Called by changePizzaSlices(size).
-/*  function determineDx (oldsize, newsize,windowwidth) {
-   // var oldwidth = elem.offsetWidth;
-    //var windowwidth = 1170;
-   // var oldsize = elem / windowwidth;
-
-    // TODO: change to 3 sizes? no more xl?
-    // Changes the slider value to a percent width
-   /* function sizeSwitcher (size) {
-      switch(size) {
-        case "1":
-          return 0.25;
-        case "2":
-          return 0.3333;
-        case "3":
-          return 0.5;
-        default:
-          console.log("bug in sizeSwitcher");
-      }
-    }
-
-    var newsize = sizeSwitcher(size);
-    var dx = (newsize - oldsize) * windowwidth;
-
-    return dx;
-  }*/
+  /* Removed determineDx method as it is no longer needed.
+     function determineDx (elem, size) {}
+  */
 
   // Iterates through pizza elements on the page and changes their widths
   function changePizzaSizes(size) {
+    // Moved below calculations out of for loop as they do not require
+    // to be calculated again and again.
     var items = document.getElementsByClassName("randomPizzaContainer");
     var offsetWidth = (items[0].offsetWidth);
     var oldsize = offsetWidth/1170;
@@ -512,6 +498,8 @@ function updatePositions() {
   var modArr = [0,1,2,3,4];
   // array to store different phase values
   var phaseArr =[];
+  // store current window inner height to be used to style only visible pizzas
+  var ht= window.innerHeight;
 
   // there can be only 5 different values for phases. Storing these values in
   // phaseArr to be used by for loop that updates element style.
@@ -519,8 +507,16 @@ function updatePositions() {
       phaseArr[j] = Math.sin((document.body.scrollTop / 1250) + modArr[j]);
   }
 
+  // this for loop modifies the style only for visible elements on the page
+  // not beyond that. If user scrolls it will again modify the style for visible elements only
   for (var i = 0; i < items.length; i++) {
-     items[i].style.left = items[i].basicLeft + 100 * phaseArr[i%5] + 'px';
+      // parsing string to integer.
+      if (parseInt(items[i].style.top) <= ht) {
+        items[i].style.left = items[i].basicLeft + 100 * phaseArr[i%5] + 'px';
+       // Following lines of code does improve performance but only displays 4-5 pizzas in a row on page.
+       //var x = -(items[i].basicLeft + 100 * phaseArr[i%5]);
+       //items[i].style.transform = 'translateX(' + x + 'px)';
+      }
   }
 
   // User Timing API to the rescue again. Seriously, it's worth learning.
